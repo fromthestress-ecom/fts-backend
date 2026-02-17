@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Danh mục – Admin</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0a0a0a; color: #fafafa; padding: 1rem; }
+    a { color: #eab308; }
+    .card { background: #141414; border: 1px solid #262626; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    input, button { padding: 0.5rem; border-radius: 4px; border: 1px solid #262626; background: #1a1a1a; color: #fafafa; }
+    button { cursor: pointer; background: #eab308; color: #0a0a0a; border: none; font-weight: 600; margin-right: 0.5rem; }
+    button.danger { background: #dc2626; color: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #262626; }
+  </style>
+</head>
+<body>
+  <p><a href="/admin/">← Admin</a></p>
+  <h1>Quản lý danh mục</h1>
+  <div class="card">
+    <h2>Thêm danh mục</h2>
+    <p><input id="newSlug" placeholder="slug" /> <input id="newName" placeholder="Tên" /> <input id="newOrder" type="number" placeholder="Thứ tự" value="0" /> <button id="addCat">Thêm</button></p>
+    <p id="catMsg" style="color:#a3a3a3;"></p>
+  </div>
+  <div class="card">
+    <h2>Danh sách</h2>
+    <table><thead><tr><th>Slug</th><th>Tên</th><th>Thứ tự</th><th></th></tr></thead><tbody id="catList"></tbody></table>
+  </div>
+  <script>
+    const API_BASE = window.location.origin;
+    const key = sessionStorage.getItem('streetwear_admin_key');
+    if (!key) { location.href = '/admin/'; }
+    const headers = () => ({ 'Content-Type': 'application/json', 'x-admin-key': key });
+    async function load() {
+      const r = await fetch(API_BASE + '/admin/categories', { headers: headers() });
+      if (r.status === 401) { location.href = '/admin/'; return; }
+      const list = await r.json();
+      const tbody = document.getElementById('catList');
+      tbody.innerHTML = list.map(c => `<tr><td>${c.slug}</td><td>${c.name}</td><td>${c.order}</td><td><button class="danger" data-id="${c._id}">Xóa</button></td></tr>`).join('');
+      tbody.querySelectorAll('button.danger').forEach(btn => btn.onclick = () => deleteCat(btn.dataset.id));
+    }
+    async function deleteCat(id) {
+      if (!confirm('Xóa danh mục?')) return;
+      await fetch(API_BASE + '/admin/categories/' + id, { method: 'DELETE', headers: headers() });
+      load();
+    }
+    document.getElementById('addCat').onclick = async () => {
+      const slug = document.getElementById('newSlug').value.trim();
+      const name = document.getElementById('newName').value.trim();
+      const order = parseInt(document.getElementById('newOrder').value, 10) || 0;
+      if (!slug || !name) { document.getElementById('catMsg').textContent = 'Nhập slug và tên'; return; }
+      const r = await fetch(API_BASE + '/admin/categories', { method: 'POST', headers: headers(), body: JSON.stringify({ slug, name, order }) });
+      const data = await r.json().catch(() => ({}));
+      document.getElementById('catMsg').textContent = r.ok ? 'Đã thêm.' : (data.message || 'Lỗi');
+      if (r.ok) { document.getElementById('newSlug').value = ''; document.getElementById('newName').value = ''; load(); }
+    };
+    load();
+  </script>
+</body>
+</html>

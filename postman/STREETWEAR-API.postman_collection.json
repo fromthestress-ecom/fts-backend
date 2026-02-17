@@ -1,0 +1,322 @@
+{
+  "info": {
+    "name": "STREETWEAR API",
+    "description": "Collection cho Backend API - E-commerce Streetwear (Node.js + MongoDB)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "guestId", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "adminKey", "value": "your-admin-api-key" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "Get category by slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/categories/ao-hoodie"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=12&sort=newest",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" },
+                { "key": "category", "value": "", "disabled": true },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "sort", "value": "newest", "description": "newest | price_asc | price_desc | name" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get product slugs (sitemap)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products/slugs"
+          }
+        },
+        {
+          "name": "Get product by slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products/hoodie-black-basic"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"fullName\": \"Nguyễn Văn A\",\n  \"phone\": \"0901234567\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-guest-id", "value": "{{guestId}}" }],
+            "url": "{{baseUrl}}/cart"
+          }
+        },
+        {
+          "name": "Add item to cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-guest-id", "value": "{{guestId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"quantity\": 1,\n  \"size\": \"M\",\n  \"color\": \"Đen\"\n}"
+            },
+            "url": "{{baseUrl}}/cart/items"
+          }
+        },
+        {
+          "name": "Update item quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-guest-id", "value": "{{guestId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", ":productId"],
+              "variable": [{ "key": "productId", "value": "PRODUCT_ID_HERE" }]
+            }
+          }
+        },
+        {
+          "name": "Remove item from cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-guest-id", "value": "{{guestId}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", ":productId"],
+              "variable": [{ "key": "productId", "value": "PRODUCT_ID_HERE" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"items\": [\n    {\n      \"productId\": \"PRODUCT_ID\",\n      \"name\": \"Hoodie Black Basic\",\n      \"price\": 450000,\n      \"quantity\": 1,\n      \"size\": \"M\",\n      \"color\": \"Đen\",\n      \"image\": \"https://example.com/image.jpg\"\n    }\n  ],\n  \"shippingAddress\": {\n    \"fullName\": \"Nguyễn Văn A\",\n    \"phone\": \"0901234567\",\n    \"address\": \"123 Đường XYZ\",\n    \"city\": \"TP.HCM\",\n    \"district\": \"Quận 1\",\n    \"ward\": \"Phường Bến Nghé\"\n  },\n  \"note\": \"Giao giờ hành chính\"\n}"
+            },
+            "url": "{{baseUrl}}/orders"
+          }
+        },
+        {
+          "name": "My orders (by email)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/my?email=customer@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "my"],
+              "query": [{ "key": "email", "value": "customer@example.com" }]
+            }
+          }
+        },
+        {
+          "name": "Get order by orderNumber",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/orders/SW000001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Verify admin key",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "url": "{{baseUrl}}/admin/auth/verify"
+          }
+        },
+        {
+          "name": "List categories (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "url": "{{baseUrl}}/admin/categories"
+          }
+        },
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"slug\": \"ao-hoodie\",\n  \"name\": \"Áo Hoodie\",\n  \"order\": 0\n}" },
+            "url": "{{baseUrl}}/admin/categories"
+          }
+        },
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Áo Hoodie\",\n  \"order\": 1\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/categories/:id", "host": ["{{baseUrl}}"], "path": ["admin", "categories", ":id"], "variable": [{ "key": "id", "value": "CATEGORY_ID" }] }
+          }
+        },
+        {
+          "name": "Delete category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/categories/:id", "host": ["{{baseUrl}}"], "path": ["admin", "categories", ":id"], "variable": [{ "key": "id", "value": "CATEGORY_ID" }] }
+          }
+        },
+        {
+          "name": "List products (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "url": "{{baseUrl}}/admin/products"
+          }
+        },
+        {
+          "name": "Create product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"slug\": \"hoodie-black\",\n  \"name\": \"Hoodie Black\",\n  \"price\": 450000,\n  \"categoryId\": \"\",\n  \"images\": [],\n  \"sizes\": [\"S\",\"M\",\"L\"],\n  \"colors\": [\"Đen\"],\n  \"inStock\": true,\n  \"stockQuantity\": 50\n}" },
+            "url": "{{baseUrl}}/admin/products"
+          }
+        },
+        {
+          "name": "Update product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Hoodie Black\",\n  \"price\": 480000\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/products/:id", "host": ["{{baseUrl}}"], "path": ["admin", "products", ":id"], "variable": [{ "key": "id", "value": "PRODUCT_ID" }] }
+          }
+        },
+        {
+          "name": "Delete product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/products/:id", "host": ["{{baseUrl}}"], "path": ["admin", "products", ":id"], "variable": [{ "key": "id", "value": "PRODUCT_ID" }] }
+          }
+        },
+        {
+          "name": "Upload image (R2 products)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-admin-key", "value": "{{adminKey}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            },
+            "url": "{{baseUrl}}/admin/upload"
+          }
+        }
+      ]
+    }
+  ]
+}

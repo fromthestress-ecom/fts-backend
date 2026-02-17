@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin – STREETWEAR</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0a0a0a; color: #fafafa; padding: 1rem; }
+    h1 { font-size: 1.5rem; }
+    a { color: #eab308; }
+    .card { background: #141414; border: 1px solid #262626; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    input, select, textarea, button { padding: 0.5rem; border-radius: 4px; border: 1px solid #262626; background: #1a1a1a; color: #fafafa; }
+    button { cursor: pointer; background: #eab308; color: #0a0a0a; border: none; font-weight: 600; }
+    button.danger { background: #dc2626; color: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #262626; }
+    .login-wrap { max-width: 360px; margin: 2rem auto; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="loginWrap" class="login-wrap card">
+    <h1>Admin login</h1>
+    <p>Nhập Admin API Key (cấu hình trong backend .env: ADMIN_API_KEY)</p>
+    <input type="password" id="apiKeyInput" placeholder="Admin API Key" style="width:100%; margin-bottom:0.5rem;" />
+    <button type="button" id="loginBtn">Đăng nhập</button>
+    <p id="loginError" class="hidden" style="color:#ef4444; margin-top:0.5rem;"></p>
+  </div>
+  <div id="appWrap" class="hidden">
+    <h1>STREETWEAR Admin</h1>
+    <p><a href="/admin/categories.html">Quản lý danh mục</a> | <a href="/admin/products.html">Quản lý sản phẩm</a> | <button type="button" id="logoutBtn">Đăng xuất</button></p>
+    <p>Admin panel (backend). Dùng frontend <code>/admin</code> để giao diện đầy đủ hơn.</p>
+  </div>
+  <script>
+    const API_BASE = window.location.origin;
+    const KEY_STORAGE = 'streetwear_admin_key';
+    function getKey() { return sessionStorage.getItem(KEY_STORAGE); }
+    function setKey(v) { if (v) sessionStorage.setItem(KEY_STORAGE, v); else sessionStorage.removeItem(KEY_STORAGE); }
+    function headers() { return { 'Content-Type': 'application/json', 'x-admin-key': getKey() }; }
+    document.getElementById('loginBtn').onclick = async () => {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!key) return;
+      const r = await fetch(API_BASE + '/admin/auth/verify', { method: 'POST', headers: { 'x-admin-key': key } });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.ok) { setKey(key); document.getElementById('loginWrap').classList.add('hidden'); document.getElementById('appWrap').classList.remove('hidden'); document.getElementById('loginError').classList.add('hidden'); }
+      else { document.getElementById('loginError').textContent = data.message || 'Sai key'; document.getElementById('loginError').classList.remove('hidden'); }
+    };
+    document.getElementById('logoutBtn').onclick = () => { setKey(null); location.reload(); };
+    if (getKey()) { document.getElementById('loginWrap').classList.add('hidden'); document.getElementById('appWrap').classList.remove('hidden'); }
+  </script>
+</body>
+</html>

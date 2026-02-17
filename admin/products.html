@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sản phẩm – Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0a0a0a; color: #fafafa; padding: 1rem; }
+    a { color: #eab308; }
+    .card { background: #141414; border: 1px solid #262626; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    input, select, textarea, button { padding: 0.5rem; border-radius: 4px; border: 1px solid #262626; background: #1a1a1a; color: #fafafa; margin-bottom: 0.5rem; }
+    button { cursor: pointer; background: #eab308; color: #0a0a0a; border: none; font-weight: 600; margin-right: 0.5rem; }
+    button.edit { background: #0ea5e9; color: #fff; }
+    button.danger { background: #dc2626; color: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #262626; }
+    .sortable-ghost { opacity: 0.4; }
+    .sortable-drag { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <p><a href="/admin/">← Admin</a></p>
+  <h1>Quản lý sản phẩm</h1>
+  <div class="card">
+    <h2>Thêm sản phẩm</h2>
+    <p>Slug: <input id="newSlug" placeholder="slug-sp" /> Tên: <input id="newName" placeholder="Tên SP" style="width:200px;" /></p>
+    <p>Giá: <input id="newPrice" type="number" placeholder="0" /> Compare: <input id="newCompare" type="number" placeholder="0" /> Danh mục: <select id="newCat"></select></p>
+    <p>Mô tả: <textarea id="newDesc" rows="2" style="width:100%;"></textarea></p>
+    <p>Ảnh: <input type="file" id="imageInput" accept="image/*" multiple style="margin-bottom:0.5rem;" /> <button type="button" id="uploadBtn">Upload ảnh</button> <span id="uploadMsg" style="color:#a3a3a3; font-size:0.875rem;"></span></p>
+    <p style="color:#eab308; font-size:0.875rem; margin-top:0.5rem; font-weight:600;">💡 Kéo thả ảnh để sắp xếp thứ tự (icon ⋮⋮ ở góc trái mỗi ảnh)</p>
+    <div id="imagePreviews" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem; min-height:110px;"></div>
+    <p>Size (cách nhau dấu phẩy): <input id="newSizes" placeholder="S,M,L,XL" /> Màu: <input id="newColors" placeholder="Đen,Trắng" /></p>
+    <p><span id="editHint" style="color:#eab308; font-size:0.875rem; display:none;">Đang sửa. </span><button type="button" id="cancelEdit" style="display:none;">Hủy</button></p>
+    <p><button id="addProd">Thêm sản phẩm</button> <span id="prodMsg" style="color:#a3a3a3;"></span></p>
+  </div>
+  <div class="card">
+    <h2>Danh sách</h2>
+    <table><thead><tr><th>Slug</th><th>Tên</th><th>Giá</th><th>Danh mục</th><th></th></tr></thead><tbody id="prodList"></tbody></table>
+  </div>
+  <script>
+    const API_BASE = window.location.origin;
+    const key = sessionStorage.getItem('streetwear_admin_key');
+    if (!key) location.href = '/admin/';
+    const headers = () => ({ 'Content-Type': 'application/json', 'x-admin-key': key });
+    let categories = [];
+    let uploadedImages = [];
+    async function loadCats() {
+      const r = await fetch(API_BASE + '/admin/categories', { headers: headers() });
+      if (r.status === 401) { location.href = '/admin/'; return; }
+      categories = await r.json();
+      const sel = document.getElementById('newCat');
+      sel.innerHTML = '<option value="">-- Chọn --</option>' + categories.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+    }
+    async function load() {
+      const r = await fetch(API_BASE + '/admin/products', { headers: headers() });
+      if (r.status === 401) { location.href = '/admin/'; return; }
+      const list = await r.json();
+      const tbody = document.getElementById('prodList');
+      tbody.innerHTML = list.map(p => `<tr><td>${p.slug}</td><td>${p.name}</td><td>${(p.price || 0).toLocaleString('vi-VN')}₫</td><td>${(p.categoryId && p.categoryId.name) || '-'}</td><td><button class="edit" data-id="${p._id}">Sửa</button> <button class="danger" data-id="${p._id}">Xóa</button></td></tr>`).join('');
+      tbody.querySelectorAll('button.danger').forEach(btn => btn.onclick = () => deleteProd(btn.dataset.id));
+      tbody.querySelectorAll('button.edit').forEach(btn => btn.onclick = () => editProd(btn.dataset.id, list));
+    }
+    let editingId = null;
+    function editProd(id, list) {
+      const p = list.find(x => x._id === id);
+      if (!p) return;
+      editingId = id;
+      document.getElementById('newSlug').value = p.slug || '';
+      document.getElementById('newName').value = p.name || '';
+      document.getElementById('newPrice').value = p.price ?? '';
+      document.getElementById('newCompare').value = p.compareAtPrice ?? '';
+      document.getElementById('newCat').value = (p.categoryId && p.categoryId._id) || '';
+      document.getElementById('newDesc').value = p.description || '';
+      document.getElementById('newSizes').value = (p.sizes || []).join(', ');
+      document.getElementById('newColors').value = (p.colors || []).join(', ');
+      uploadedImages = p.images || [];
+      renderImagePreviews();
+      document.getElementById('editHint').style.display = 'inline';
+      document.getElementById('cancelEdit').style.display = 'inline-block';
+      document.getElementById('addProd').textContent = 'Cập nhật sản phẩm';
+      document.getElementById('prodMsg').textContent = '';
+    }
+    document.getElementById('cancelEdit').onclick = () => {
+      editingId = null;
+      document.getElementById('newSlug').value = '';
+      document.getElementById('newName').value = '';
+      document.getElementById('newPrice').value = '';
+      document.getElementById('newCompare').value = '';
+      document.getElementById('newCat').value = '';
+      document.getElementById('newDesc').value = '';
+      document.getElementById('newSizes').value = '';
+      document.getElementById('newColors').value = '';
+      uploadedImages = [];
+      document.getElementById('imagePreviews').innerHTML = '';
+      document.getElementById('editHint').style.display = 'none';
+      document.getElementById('cancelEdit').style.display = 'none';
+      document.getElementById('addProd').textContent = 'Thêm sản phẩm';
+    };
+    let sortableInstance = null;
+    function createImagePreview(url, index) {
+      const div = document.createElement('div');
+      div.dataset.url = url;
+      div.style.cssText = 'position:relative; width:100px; height:100px; border:2px solid #262626; border-radius:4px; overflow:hidden; cursor:move; transition:all 0.2s; background:#1a1a1a;';
+      div.innerHTML = `
+        <img src="${url}" style="width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;" />
+        <div style="position:absolute; top:2px; left:2px; background:rgba(0,0,0,0.8); color:#fff; border-radius:4px; padding:2px 4px; font-size:10px; pointer-events:none; z-index:5; user-select:none;">⋮⋮</div>
+        <button onclick="event.stopPropagation(); removeImage('${url}');" style="position:absolute; top:2px; right:2px; background:rgba(220,38,38,0.9); color:#fff; border:none; border-radius:4px; cursor:pointer; width:24px; height:24px; z-index:10; font-size:16px; line-height:1;">×</button>
+      `;
+      div.onmouseenter = () => {
+        div.style.borderColor = '#eab308';
+      };
+      div.onmouseleave = () => {
+        div.style.borderColor = '#262626';
+      };
+      return div;
+    }
+    function initSortable() {
+      const wrap = document.getElementById('imagePreviews');
+      if (sortableInstance) {
+        sortableInstance.destroy();
+      }
+      sortableInstance = new Sortable(wrap, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        handle: 'div', // Có thể drag từ bất kỳ đâu trên div
+        onEnd: function() {
+          updateImageOrder();
+        }
+      });
+    }
+    function renderImagePreviews() {
+      const wrap = document.getElementById('imagePreviews');
+      wrap.innerHTML = '';
+      uploadedImages.forEach((url, index) => {
+        const div = createImagePreview(url, index);
+        wrap.appendChild(div);
+      });
+      // Khởi tạo lại Sortable sau khi render
+      setTimeout(() => {
+        initSortable();
+      }, 10);
+    }
+    function updateImageOrder() {
+      const wrap = document.getElementById('imagePreviews');
+      const divs = wrap.querySelectorAll('div[draggable]');
+      uploadedImages = Array.from(divs).map(div => div.dataset.url).filter(Boolean);
+    }
+    function removeImage(url) {
+      uploadedImages = uploadedImages.filter(u => u !== url);
+      renderImagePreviews();
+    }
+    async function deleteProd(id) {
+      if (!confirm('Xóa sản phẩm?')) return;
+      await fetch(API_BASE + '/admin/products/' + id, { method: 'DELETE', headers: headers() });
+      load();
+    }
+    document.getElementById('addProd').onclick = async () => {
+      // Cập nhật thứ tự ảnh trước khi submit (nếu có drag and drop chưa hoàn tất)
+      updateImageOrder();
+      const slug = document.getElementById('newSlug').value.trim();
+      const name = document.getElementById('newName').value.trim();
+      const price = Number(document.getElementById('newPrice').value) || 0;
+      const compareAtPrice = Number(document.getElementById('newCompare').value) || 0;
+      const categoryId = document.getElementById('newCat').value || undefined;
+      const description = document.getElementById('newDesc').value.trim() || undefined;
+      const images = uploadedImages;
+      const sizes = document.getElementById('newSizes').value.split(',').map(s => s.trim()).filter(Boolean);
+      const colors = document.getElementById('newColors').value.split(',').map(s => s.trim()).filter(Boolean);
+      if (!slug || !name) { document.getElementById('prodMsg').textContent = 'Nhập slug và tên'; return; }
+      const payload = { slug, name, price, compareAtPrice, categoryId, description, images, sizes, colors, inStock: true, stockQuantity: 99 };
+      const url = editingId ? API_BASE + '/admin/products/' + editingId : API_BASE + '/admin/products';
+      const method = editingId ? 'PUT' : 'POST';
+      const r = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) });
+      const data = await r.json().catch(() => ({}));
+      document.getElementById('prodMsg').textContent = r.ok ? (editingId ? 'Đã cập nhật.' : 'Đã thêm.') : (data.message || 'Lỗi');
+      if (r.ok) { document.getElementById('cancelEdit').click(); load(); }
+    };
+    document.getElementById('uploadBtn').onclick = async () => {
+      const input = document.getElementById('imageInput');
+      const files = input.files;
+      if (!files || files.length === 0) { document.getElementById('uploadMsg').textContent = 'Chọn ảnh'; return; }
+      document.getElementById('uploadMsg').textContent = 'Đang upload...';
+      try {
+        for (const file of Array.from(files)) {
+          const fd = new FormData();
+          fd.append('file', file);
+          const r = await fetch(API_BASE + '/admin/upload', { method: 'POST', headers: { 'x-admin-key': key }, body: fd });
+          const data = await r.json().catch(() => ({}));
+          if (r.ok && data.url) {
+            uploadedImages.push(data.url);
+            renderImagePreviews();
+          } else {
+            document.getElementById('uploadMsg').textContent = data.message || 'Upload thất bại';
+            return;
+          }
+        }
+        document.getElementById('uploadMsg').textContent = `Đã upload ${files.length} ảnh`;
+        input.value = '';
+      } catch (e) {
+        document.getElementById('uploadMsg').textContent = 'Lỗi: ' + e.message;
+      }
+    };
+    loadCats().then(load);
+  </script>
+</body>
+</html>
