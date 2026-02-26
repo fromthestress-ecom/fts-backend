@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { slug, name, description, image, order } = req.body || {};
+    const { slug, name, description, image, order, navGroup, groupOrder } = req.body || {};
     if (!slug || !name) {
       return res.status(400).json({ message: 'slug and name are required' });
     }
@@ -26,6 +26,8 @@ router.post('/', async (req, res) => {
       description: description?.trim() || undefined,
       image: image?.trim() || undefined,
       order: Number(order) || 0,
+      navGroup: navGroup != null ? String(navGroup).trim() : '',
+      groupOrder: Number(groupOrder) ?? 0,
     });
     res.status(201).json(category);
   } catch (err) {
@@ -36,16 +38,18 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { slug, name, description, image, order } = req.body || {};
+    const { slug, name, description, image, order, navGroup, groupOrder } = req.body || {};
+    const update = {};
+    if (slug !== undefined) update.slug = String(slug).trim();
+    if (name !== undefined) update.name = String(name).trim();
+    if (description !== undefined) update.description = description?.trim() || '';
+    if (image !== undefined) update.image = image?.trim() || '';
+    if (order !== undefined) update.order = Number(order) || 0;
+    if (navGroup !== undefined) update.navGroup = String(navGroup).trim();
+    if (groupOrder !== undefined) update.groupOrder = Number(groupOrder) ?? 0;
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      {
-        ...(slug !== undefined && { slug: String(slug).trim() }),
-        ...(name !== undefined && { name: String(name).trim() }),
-        ...(description !== undefined && { description: description?.trim() || '' }),
-        ...(image !== undefined && { image: image?.trim() || '' }),
-        ...(order !== undefined && { order: Number(order) || 0 }),
-      },
+      update,
       { new: true, runValidators: true }
     ).lean();
     if (!category) return res.status(404).json({ message: 'Category not found' });

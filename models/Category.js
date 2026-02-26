@@ -7,6 +7,8 @@ const schema = new mongoose.Schema(
     description: String,
     image: String,
     order: { type: Number, default: 0 },
+    navGroup: { type: String, default: '' },
+    groupOrder: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
