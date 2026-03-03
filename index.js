@@ -21,6 +21,7 @@ import adminBlogCategories from "./routes/admin/blog-categories.js";
 import adminBlogs from "./routes/admin/blogs.js";
 import adminTags from "./routes/admin/tags.js";
 import adminAffiliates from "./routes/admin/affiliates.js";
+import adminUsers from "./routes/admin/users.js";
 import adminReferrals from "./routes/admin/referrals.js";
 import blogs from "./routes/blogs.js";
 
@@ -51,6 +52,7 @@ app.use("/admin/blogs", adminBlogs);
 app.use("/admin/tags", adminTags);
 app.use("/admin/affiliates", adminAffiliates);
 app.use("/admin/referrals", adminReferrals);
+app.use("/admin/users", adminUsers);
 app.use("/blogs", blogs);
 app.use("/admin", express.static("admin"));
 
