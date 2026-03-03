@@ -1,0 +1,62 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main # Change this if your default branch is different (e.g., master)
+    paths-ignore:
+      - "README.md"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Uncomment if you want to test before deploy
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '18'
+      # - name: Install dependencies and Run tests
+      #   run: |
+      #     npm ci
+      #     npm test
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }} # Optional, remove if your key doesn't have a passphrase
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          # The script below assumes you have cloned the repo on the server at /home/deploy/fts-backend
+          # Adjust the path to match your actual server setup
+          script: |
+            # 1. Go to project directory
+            cd /path/to/your/project/on/server/fts-backend
+
+            # 2. Pull latest code
+            git pull origin main
+
+            # 3. Build new Docker image
+            docker build -t fts-backend .
+
+            # 4. Stop and remove old container (if exists)
+            docker stop fts-backend-container || true
+            docker rm fts-backend-container || true
+
+            # 5. Run the new container
+            # Make sure you have a .env file securely stored inside /path/to/your/project/on/server/fts-backend
+            docker run -d \
+              -p 4000:4000 \
+              --name fts-backend-container \
+              --env-file .env \
+              --restart unless-stopped \
+              fts-backend
+              
+            # Optional: Clean up old dangling images to save space
+            docker image prune -f
