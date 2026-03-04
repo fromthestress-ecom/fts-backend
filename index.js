@@ -23,6 +23,7 @@ import adminTags from "./routes/admin/tags.js";
 import adminAffiliates from "./routes/admin/affiliates.js";
 import adminUsers from "./routes/admin/users.js";
 import adminReferrals from "./routes/admin/referrals.js";
+import adminStats from "./routes/admin/stats.js";
 import blogs from "./routes/blogs.js";
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/admin/tags", adminTags);
 app.use("/admin/affiliates", adminAffiliates);
 app.use("/admin/referrals", adminReferrals);
 app.use("/admin/users", adminUsers);
+app.use("/admin/stats", adminStats);
 app.use("/blogs", blogs);
 app.use("/admin", express.static("admin"));
 
