@@ -26,5 +26,8 @@ const schema = new mongoose.Schema(
 
 schema.index({ categoryId: 1 });
 schema.index({ name: "text", description: "text" });
+// Added for performance optimization
+schema.index({ preOrder: 1 });
+schema.index({ order: 1, createdAt: -1 });
 
 export const Product = mongoose.model("Product", schema);

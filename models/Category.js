@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
@@ -7,10 +7,14 @@ const schema = new mongoose.Schema(
     description: String,
     image: String,
     order: { type: Number, default: 0 },
-    navGroup: { type: String, default: '' },
+    navGroup: { type: String, default: "" },
     groupOrder: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const Category = mongoose.model('Category', schema);
+// Added for performance optimization
+schema.index({ navGroup: 1 });
+schema.index({ order: 1, groupOrder: 1 });
+
+export const Category = mongoose.model("Category", schema);

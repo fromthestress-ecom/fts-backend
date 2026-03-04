@@ -50,5 +50,8 @@ const schema = new mongoose.Schema(
 schema.index({ orderNumber: 1 });
 schema.index({ userId: 1 });
 schema.index({ email: 1 });
+// Added for performance optimization
+schema.index({ status: 1 });
+schema.index({ createdAt: -1 });
 
 export const Order = mongoose.model("Order", schema);
