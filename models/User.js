@@ -20,6 +20,8 @@ const schema = new mongoose.Schema(
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     affiliateId: { type: mongoose.Schema.Types.ObjectId, ref: "Affiliate" },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   { timestamps: true },
 );
