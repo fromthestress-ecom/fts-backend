@@ -20,6 +20,7 @@ const schema = new mongoose.Schema(
     sizes: { type: [String], default: [] },
     colors: { type: [String], default: [] },
     order: { type: Number, default: 0 },
+    isSoldOut: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

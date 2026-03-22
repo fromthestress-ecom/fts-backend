@@ -52,6 +52,7 @@ router.post("/", async (req, res) => {
       templateId,
       order,
       preOrder,
+      isSoldOut,
     } = body;
     if (!slug || !name || price == null) {
       return res
@@ -77,6 +78,7 @@ router.post("/", async (req, res) => {
         : undefined,
       order: Number(order) || 0,
       preOrder: preOrder === true,
+      isSoldOut: isSoldOut === true,
     });
     const populated = await Product.findById(product._id)
       .populate("categoryId")
@@ -158,6 +160,7 @@ router.put("/:id", async (req, res) => {
         : null;
     if (body.order !== undefined) updates.order = Number(body.order) || 0;
     if (body.preOrder !== undefined) updates.preOrder = body.preOrder === true;
+    if (body.isSoldOut !== undefined) updates.isSoldOut = body.isSoldOut === true;
 
     const product = await Product.findByIdAndUpdate(req.params.id, updates, {
       new: true,
@@ -171,6 +174,28 @@ router.put("/:id", async (req, res) => {
   } catch (err) {
     if (err.code === 11000)
       return res.status(409).json({ message: "Slug already exists" });
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch("/:id/sold-out", async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id))
+      return res.status(400).json({ message: "Invalid ID" });
+    const { isSoldOut } = req.body || {};
+    if (typeof isSoldOut !== "boolean")
+      return res.status(400).json({ message: "isSoldOut (boolean) is required" });
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { isSoldOut },
+      { new: true },
+    )
+      .populate("categoryId")
+      .populate("templateId")
+      .lean();
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
