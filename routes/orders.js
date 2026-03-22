@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { Order } from "../models/Order.js";
+import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import { Affiliate } from "../models/Affiliate.js";
 import { AffiliateCommission } from "../models/AffiliateCommission.js";
 import { ReferralUsage } from "../models/ReferralUsage.js";
 import { ReferralConfig } from "../models/ReferralConfig.js";
 import { WalletTransaction } from "../models/WalletTransaction.js";
+import { computeEventPrice } from "../utils/eventPrice.js";
 
 const router = Router();
 
@@ -43,7 +45,22 @@ router.post("/", async (req, res) => {
       });
     }
 
-    let subtotal = items.reduce(
+    // Re-validate prices with active events
+    const productIds = items.map((i) => i.productId).filter(Boolean);
+    const dbProducts = await Product.find({ _id: { $in: productIds } })
+      .populate("eventId")
+      .lean();
+
+    const validatedItems = items.map((item) => {
+      const dbProd = dbProducts.find(
+        (p) => p._id.toString() === String(item.productId),
+      );
+      if (!dbProd) return item;
+      const withEvent = computeEventPrice(dbProd);
+      return { ...item, price: withEvent.finalPrice };
+    });
+
+    let subtotal = validatedItems.reduce(
       (sum, i) => sum + (i.price || 0) * (i.quantity || 0),
       0,
     );
@@ -109,7 +126,7 @@ router.post("/", async (req, res) => {
       orderNumber,
       userId: userId || undefined,
       email,
-      items,
+      items: validatedItems,
       shippingAddress: { fullName, phone, address, city, district, ward },
       subtotal,
       shippingFee,

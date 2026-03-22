@@ -14,6 +14,10 @@ const schema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "ProductTemplate",
     },
+    eventId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
+    },
     inStock: { type: Boolean, default: true },
     preOrder: { type: Boolean, default: false },
     stockQuantity: { type: Number, default: 0 },
@@ -30,5 +34,6 @@ schema.index({ name: "text", description: "text" });
 // Added for performance optimization
 schema.index({ preOrder: 1 });
 schema.index({ order: 1, createdAt: -1 });
+schema.index({ eventId: 1 });
 
 export const Product = mongoose.model("Product", schema);

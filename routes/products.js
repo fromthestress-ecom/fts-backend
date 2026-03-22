@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { Product } from "../models/Product.js";
 import { Category } from "../models/Category.js";
 import { Order } from "../models/Order.js";
+import { applyEventPricing } from "../utils/eventPrice.js";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get("/", async (req, res) => {
       Math.max(1, parseInt(req.query.limit, 10) || 12),
     );
     const category = req.query.category;
+    const eventFilter = req.query.event;
     const navGroup = (req.query.navGroup || "").trim();
     const exclude = (req.query.exclude || "").trim();
     const q = (req.query.q || "").trim();
@@ -31,6 +33,7 @@ router.get("/", async (req, res) => {
 
     const filter = {};
     if (category) filter.categoryId = new mongoose.Types.ObjectId(category);
+    if (eventFilter) filter.eventId = new mongoose.Types.ObjectId(eventFilter);
     if (navGroup) {
       const categoryIds = await Category.find({ navGroup })
         .select("_id")
@@ -52,15 +55,18 @@ router.get("/", async (req, res) => {
     else query = query.sort({ order: 1, createdAt: -1 });
 
     const skip = (page - 1) * limit;
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       query
         .skip(skip)
         .limit(limit)
         .populate("categoryId")
         .populate("templateId")
+        .populate("eventId")
         .lean(),
       Product.countDocuments(filter),
     ]);
+
+    const items = applyEventPricing(rawItems);
 
     res.json({
       items,
@@ -103,14 +109,15 @@ router.get("/best-selling", async (req, res) => {
     const products = await Product.find({ _id: { $in: productIds } })
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .lean();
 
     // Map the fetched products back to the sorted order from the aggregation
     const sortedProducts = bestSellingIds
       .map((b) => products.find((p) => p._id.toString() === b._id.toString()))
-      .filter((p) => p != null); // filter out any nulls just in case a product was hard-deleted
+      .filter((p) => p != null);
 
-    res.json(sortedProducts);
+    res.json(applyEventPricing(sortedProducts));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -121,9 +128,10 @@ router.get("/:slug", async (req, res) => {
     const product = await Product.findOne({ slug: req.params.slug })
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+    res.json(applyEventPricing(product));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

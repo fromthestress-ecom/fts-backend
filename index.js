@@ -24,7 +24,9 @@ import adminAffiliates from "./routes/admin/affiliates.js";
 import adminUsers from "./routes/admin/users.js";
 import adminReferrals from "./routes/admin/referrals.js";
 import adminStats from "./routes/admin/stats.js";
+import adminEvents from "./routes/admin/events.js";
 import blogs from "./routes/blogs.js";
+import events from "./routes/events.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -55,7 +57,9 @@ app.use("/admin/affiliates", adminAffiliates);
 app.use("/admin/referrals", adminReferrals);
 app.use("/admin/users", adminUsers);
 app.use("/admin/stats", adminStats);
+app.use("/admin/events", adminEvents);
 app.use("/blogs", blogs);
+app.use("/events", events);
 app.use("/admin", express.static("admin"));
 
 app.get("/health", (req, res) => res.json({ ok: true }));

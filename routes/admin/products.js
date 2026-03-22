@@ -11,6 +11,7 @@ router.get("/", async (req, res) => {
     const list = await Product.find()
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .sort({ order: 1, createdAt: -1 })
       .lean();
     res.json(list);
@@ -26,6 +27,7 @@ router.get("/:id", async (req, res) => {
     const product = await Product.findById(req.params.id)
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
@@ -50,6 +52,7 @@ router.post("/", async (req, res) => {
       sizes,
       colors,
       templateId,
+      eventId,
       order,
       preOrder,
       isSoldOut,
@@ -76,6 +79,9 @@ router.post("/", async (req, res) => {
       templateId: templateId
         ? new mongoose.Types.ObjectId(templateId)
         : undefined,
+      eventId: eventId
+        ? new mongoose.Types.ObjectId(eventId)
+        : undefined,
       order: Number(order) || 0,
       preOrder: preOrder === true,
       isSoldOut: isSoldOut === true,
@@ -83,6 +89,7 @@ router.post("/", async (req, res) => {
     const populated = await Product.findById(product._id)
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .lean();
     res.status(201).json(populated);
   } catch (err) {
@@ -158,6 +165,10 @@ router.put("/:id", async (req, res) => {
       updates.templateId = body.templateId
         ? new mongoose.Types.ObjectId(body.templateId)
         : null;
+    if (body.eventId !== undefined)
+      updates.eventId = body.eventId
+        ? new mongoose.Types.ObjectId(body.eventId)
+        : null;
     if (body.order !== undefined) updates.order = Number(body.order) || 0;
     if (body.preOrder !== undefined) updates.preOrder = body.preOrder === true;
     if (body.isSoldOut !== undefined) updates.isSoldOut = body.isSoldOut === true;
@@ -168,6 +179,7 @@ router.put("/:id", async (req, res) => {
     })
       .populate("categoryId")
       .populate("templateId")
+      .populate("eventId")
       .lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
