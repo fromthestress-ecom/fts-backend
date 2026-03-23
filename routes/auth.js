@@ -134,7 +134,7 @@ router.post("/forgot-password", async (req, res) => {
     await user.save();
 
     // Log for local testing or simulate email
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || "https://fromthestress.vn"}/reset-password?token=${resetToken}`;
     console.log(`[Forgot Password] Reset URL for ${email}: ${resetUrl}`);
 
     res.json({

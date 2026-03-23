@@ -52,7 +52,7 @@ router.get("/my-code", requireAuth, async (req, res) => {
     const user = await User.findById(req.user._id).select(
       "referralCode fullName",
     );
-    const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const siteUrl = process.env.SITE_URL || "https://fromthestress.vn";
 
     // Count how many people used this code
     const usageCount = await ReferralUsage.countDocuments({

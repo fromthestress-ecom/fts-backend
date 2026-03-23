@@ -190,7 +190,7 @@ router.get("/products", requireAffiliate, async (req, res) => {
     ]);
 
     // Attach affiliate link to each product
-    const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const siteUrl = process.env.SITE_URL || "https://fromthestress.vn";
     const items = products.map((p) => ({
       ...p,
       affiliateLink: `${siteUrl}/san-pham/${p.slug}?ref=${req.affiliate._id}`,
