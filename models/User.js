@@ -26,7 +26,6 @@ const schema = new mongoose.Schema(
   { timestamps: true },
 );
 
-schema.index({ referralCode: 1 });
 
 // Auto-generate referralCode before save if not set
 schema.pre("save", async function (next) {

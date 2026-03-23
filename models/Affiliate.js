@@ -23,7 +23,6 @@ const schema = new mongoose.Schema(
   { timestamps: true },
 );
 
-schema.index({ userId: 1 });
 schema.index({ status: 1 });
 
 export const Affiliate = mongoose.model("Affiliate", schema);

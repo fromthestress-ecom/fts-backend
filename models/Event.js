@@ -20,6 +20,5 @@ const schema = new mongoose.Schema(
 );
 
 schema.index({ isActive: 1, startDate: 1, endDate: 1 });
-schema.index({ slug: 1 });
 
 export const Event = mongoose.model("Event", schema);
