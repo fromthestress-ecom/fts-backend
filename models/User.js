@@ -28,8 +28,8 @@ const schema = new mongoose.Schema(
 
 
 // Auto-generate referralCode before save if not set
-schema.pre("save", async function (next) {
-  if (this.referralCode) return next();
+schema.pre("save", async function () {
+  if (this.referralCode) return;
   let code;
   let exists = true;
   while (exists) {
@@ -37,7 +37,6 @@ schema.pre("save", async function (next) {
     exists = await mongoose.model("User").findOne({ referralCode: code });
   }
   this.referralCode = code;
-  next();
 });
 
 export const User = mongoose.model("User", schema);

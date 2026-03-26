@@ -24,6 +24,9 @@ const blogSchema = new mongoose.Schema(
     thumbnail: {
       type: String, // URL to image
     },
+    bannerImage: {
+      type: String, // URL to high-res banner
+    },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BlogCategory",
@@ -50,6 +53,10 @@ const blogSchema = new mongoose.Schema(
       type: Number, // in minutes
       default: 0,
     },
+    showToc: {
+      type: Boolean,
+      default: true,
+    },
     metaTitle: String,
     metaDescription: String,
     ogImage: String,
@@ -58,15 +65,14 @@ const blogSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to calculate reading time roughly based on content length
-blogSchema.pre("save", function (next) {
-  if (this.isModified("content")) {
+blogSchema.pre("save", function () {
+  if (this.isModified("content") && this.content) {
     const wordsPerMinute = 200;
     // Strip HTML tags roughly before splitting for word count, or just split raw content
     const plainText = this.content.replace(/<[^>]+>/g, "");
     const textLength = plainText.split(/\s+/).length;
     this.readingTime = Math.max(1, Math.ceil(textLength / wordsPerMinute));
   }
-  next();
 });
 
 export default mongoose.model("Blog", blogSchema);
