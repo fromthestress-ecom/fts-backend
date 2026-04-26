@@ -1,9 +1,32 @@
+import crypto from "crypto";
 import { Router } from "express";
 import { User } from "../models/User.js";
-import { hashPassword, verifyPassword, signToken } from "../utils/auth.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { hashPassword, signToken, verifyPassword } from "../utils/auth.js";
+import { sendMail } from "../utils/mailer.js";
 
 const router = Router();
+
+function buildResetPasswordEmailHtml({ fullName, resetUrl }) {
+  return `
+    <div style="font-family:Arial,sans-serif;color:#111;line-height:1.6">
+      <h2 style="margin:0 0 16px">Khôi phục mật khẩu</h2>
+      <p>Xin chao ${fullName || "ban"},</p>
+      <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản FROM THE STRESS của bạn.</p>
+      <p>
+        <a
+          href="${resetUrl}"
+          style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px"
+        >
+          Khôi phục mật khẩu
+        </a>
+      </p>
+      <p>Hoặc mở liên kết này trong trình duyệt:</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>Liên kết có hiệu lực trong 1 giờ. Nếu bạn không yêu cầu đặt lại mật khẩu, hay bỏ qua email này.</p>
+    </div>
+  `;
+}
 
 router.post("/register", async (req, res) => {
   try {
@@ -24,7 +47,6 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ message: "Email already registered" });
     }
 
-    // Resolve referredBy code
     let referredBy;
     if (referredByCode) {
       const referrer = await User.findOne({
@@ -90,7 +112,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ─── Get Current User ───────────────────────────────────────────────────────
 router.get("/me", requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -112,9 +133,6 @@ router.get("/me", requireAuth, async (req, res) => {
   }
 });
 
-// ─── Forgot & Reset Password ────────────────────────────────────────────────
-import crypto from "crypto";
-
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body || {};
@@ -122,24 +140,35 @@ router.post("/forgot-password", async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      // return 200 anyway to prevent enumeration
-      return res.json({
-        message: "Nếu email tồn tại, hệ thống đã gửi link khôi phục mật khẩu.",
-      });
+      return res.status(404).json({ message: "Email chua ton tai" });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    const resetTokenHash = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordToken = resetTokenHash;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
     await user.save();
 
-    // Log for local testing or simulate email
-    const resetUrl = `${process.env.FRONTEND_URL || "https://fromthestress.vn"}/reset-password?token=${resetToken}`;
-    console.log(`[Forgot Password] Reset URL for ${email}: ${resetUrl}`);
+    const requestOrigin = req.get("origin");
+    const frontendBaseUrl =
+      requestOrigin || process.env.FRONTEND_URL || "https://fromthestress.vn";
+    const resetUrl = `${frontendBaseUrl.replace(/\/$/, "")}/reset-password?token=${resetToken}`;
+
+    await sendMail({
+      to: user.email,
+      subject: "Khoi phuc mat khau FROM THE STRESS",
+      html: buildResetPasswordEmailHtml({
+        fullName: user.fullName,
+        resetUrl,
+      }),
+    });
 
     res.json({
-      message: "Đường dẫn khôi phục đã được gửi (kiểm tra console BE)",
-      testUrl: resetUrl,
+      message: "Da gui email khoi phuc mat khau",
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -160,15 +189,16 @@ router.post("/reset-password", async (req, res) => {
         .json({ message: "Password must be at least 8 characters" });
     }
 
+    const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: resetTokenHash,
       resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
       return res
         .status(400)
-        .json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+        .json({ message: "Token khong hop le hoac da het han" });
     }
 
     user.passwordHash = hashPassword(newPassword);
@@ -176,7 +206,7 @@ router.post("/reset-password", async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ message: "Đổi mật khẩu thành công" });
+    res.json({ message: "Doi mat khau thanh cong" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
